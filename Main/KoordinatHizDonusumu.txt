@@ -1,0 +1,82 @@
+%% GİRDİLER
+format long g;
+clc;
+clear all;
+% birimlere dikkat et sınavda farklı birimlerde verilebilir ona göre kodu
+% düzelt mas yerine derece vermek gibi
+
+% Koordinatlar
+t_from   = 2014.35;
+Xt_from  = 4027894.0060;
+Yt_from  = 307045.6000;
+Zt_from  = 4919474.9100;
+Vx_from  = 0.01; 
+Vy_from  = 0.2;
+Vz_from  = 0.03;
+ 
+% Dönüşüm Parametreleri
+t0_transpar = 2000.00;
+Tx_t0_from  = 22.8/1000;
+Ty_t0_from  = 2.6/1000;
+Tz_t0_from  = -125.2/1000;%metre
+D_t0_from   = 10.41*10^-9;% ppb ppm b(billion)(-9) milyar m milyon(-6) 
+Rx_t0_from  = deg2rad(0.10/1000/3600); % miliarcsecond
+% 1 mas = ((1*10^-3)/3600)*(pi/180) degree
+Ry_t0_from  = deg2rad(0.00/1000/3600);
+Rz_t0_from  = deg2rad(0.06/1000/3600);
+VTx_from    = 0.1/1000;
+VTy_from    = -0.5/1000;
+VTz_from    = -3.2/1000;
+VD_from     = 0.09*10^-9;
+VRx_from    = deg2rad(0.00/1000/3600);
+VRy_from    = deg2rad(0.00/1000/3600);
+VRz_from    = deg2rad(0.02/1000/3600);
+ 
+% Çıktı Koordinat Yayım Epoğu
+t0_to =  2005.000;
+%% HESAPLAMALAR
+
+% Dönüşüm Parametrelerinin t_from Epoğuna Ötelenmesi
+Tx_t_from = Tx_t0_from + (t_from - t0_transpar) * VTx_from;
+Ty_t_from = Ty_t0_from + (t_from - t0_transpar) * VTy_from ;
+Tz_t_from = Tz_t0_from + (t_from - t0_transpar) * VTz_from;
+D_t_from   = D_t0_from + (t_from - t0_transpar) * VD_from;
+Rx_t_from = Rx_t0_from + (t_from - t0_transpar) * VRx_from;
+Ry_t_from = Ry_t0_from + (t_from - t0_transpar) * VRy_from;
+Rz_t_from = Rz_t0_from + (t_from - t0_transpar) * VRz_from;
+
+% t_from Epoğunda Koordinat ve Hız Dönüşümü
+XYZ_t_from = [Xt_from  ; Yt_from  ; Zt_from];
+T_t_from      = [Tx_t_from  ; Ty_t_from ; Tz_t_from];
+R_t_from      = [D_t_from     -Rz_t_from    Ry_t_from ;
+                        Rz_t_from     D_t_from     -Rx_t_from;
+                       -Ry_t_from    Rx_t_from    D_t_from];
+ 
+VXYZ_from = [Vx_from  ; Vy_from ; Vz_from ];
+VT_from      = [VTx_from ; VTy_from ; VTz_from ];
+VR_from      = [VD_from  -VRz_from VRy_from ;
+                       VRz_from VD_from -VRx_from;
+                       -VRy_from    VRx_from    VD_from];
+ 
+XYZ_t_to = XYZ_t_from  + T_t_from  + R_t_from* XYZ_t_from;
+VXYZ_to = VXYZ_from + VT_from + VR_from * XYZ_t_from;
+
+% t_from Epoğundan t0_to epoğuna Koordinat Öteleme
+XYZ_t0_to = XYZ_t_to  + (t0_to - t_from) * VXYZ_to;
+%% SONUÇLAR
+
+% t0_to Epoğunda Noktanın XYZ Koordinatları
+fprintf("Kartezyen Koordinat:\n");
+fprintf("%10.4f\n", XYZ_t0_to);
+
+% to Referans Sisteminde Noktanın Hızları
+fprintf("Hız Paremetreleri:\n");
+fprintf("%10.4f\n",VXYZ_to);
+
+E=referenceEllipsoid('grs80');
+[lat,lon,h]=ecef2geodetic(E,XYZ_t0_to(1),XYZ_t0_to(2),XYZ_t0_to(3),'degrees');
+fprintf("jeodezik Koordinatlar:\n");
+fprintf("%10.4f\n",lat);
+fprintf("%10.4f\n",lon);
+fprintf("%10.4f\n",h);
+
